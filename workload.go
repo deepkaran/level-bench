@@ -5,14 +5,19 @@ import (
 	"math/rand"
 	"time"
 	"sync"
+    "code.google.com/p/plotinum/plot"
+    "code.google.com/p/plotinum/plotter"
+    "image/color"
 )
 
 type Workload struct {
+	name string
     ratioCreate float64
     ratioRead float64
     ratioUpdate float64
     ratioDelete float64
     totalOps int64
+    reportStats bool
 }
 
 const (
@@ -22,14 +27,14 @@ const (
 	DELETE = iota
 )
 
-func runWorkload(db DBInfo, w Workload, f FileDataSource, wg *sync.WaitGroup) {
+func (w *Workload) RunWorkload(db DBInfo, f FileDataSource, wg *sync.WaitGroup) {
 
 	defer wg.Done()
 
-    var timeCreate []time.Duration
-    var timeRead   []time.Duration
-    var timeUpdate []time.Duration
-    var timeDelete []time.Duration
+	var timeCreate []time.Duration
+	var timeRead []time.Duration
+	var timeUpdate []time.Duration 
+	var timeDelete []time.Duration
 
     var opList []int
     
@@ -99,34 +104,102 @@ func runWorkload(db DBInfo, w Workload, f FileDataSource, wg *sync.WaitGroup) {
 	        //TODO
 	        //delete from keyList as well and keyCount--
         }
-    }
+    }    
     
-    
-    log.Printf("Statistics for Workload %v", w)
-    
-    genReport(timeCreate, "Create")
-    genReport(timeRead, "Read")
-    genReport(timeUpdate, "Update")
-    genReport(timeDelete, "Delete")
+    w.genReport(timeCreate, timeRead, timeUpdate, timeDelete)
 
 }
 
-func genReport(timeInfo []time.Duration, opType string) {
 
-	if len(timeInfo) == 0 {
-		return
-	}
+func (w *Workload) calcStats(timeInfo []time.Duration, opType string) (plotter.XYs) {
 	
-    var sum float64 = 0
+    var sum int64 = 0
     var count int64 = 0
-	for _, x := range timeInfo {
-		sum += x.Seconds()
-		count += 1
+	pts := make(plotter.XYs, len(timeInfo))
+	
+	for i, x := range timeInfo {
+		if x.Nanoseconds() > 1 && x.Nanoseconds() < 2000000{		
+			sum += x.Nanoseconds()
+			count += 1
+			pts[i].X = float64(i)
+			pts[i].Y = float64(x.Nanoseconds()) / 1000.0
+		}
+	}
+
+	timeInSecs := float64(sum) / 1000000000
+
+	log.Printf("Total Ops for %s : %d", opType, count)
+	log.Printf("Total time taken : %f seconds", timeInSecs)
+	log.Printf("Ops per second : %f",  float64(count) / timeInSecs)
+	
+	return pts
+}
+
+func (w *Workload) genReport(timeCreate []time.Duration, timeRead []time.Duration, 
+								timeUpdate []time.Duration, timeDelete []time.Duration) {
+
+		
+	// Create a new plot, set its title and
+    // axis labels.
+    p, err := plot.New()
+    if err != nil {
+    	panic(err)
+    }
+    
+    p.Title.Text = "LevelDB Performance :" + w.name
+    p.X.Label.Text = "Data Ops"
+    p.Y.Label.Text = "Time in Microseconds"
+    // Draw a grid behind the data
+    p.Add(plotter.NewGrid())
+
+
+	if len(timeCreate) > 0 {
+
+		pts := w.calcStats(timeCreate, "CREATE")
+		// Make a scatter plotter and set its style.	
+		s, err := plotter.NewScatter(pts)
+		if err != nil {
+			panic(err)
+    	}
+    
+		s.GlyphStyle.Color = color.RGBA{ R: 128, A: 255}
+		s.GlyphStyle.Radius = 1        
+		p.Add(s)
 	}
 	
-	log.Printf("Total Ops for %s : %d", opType, count)
-	log.Printf("Total time taken : %f seconds", sum)
-	log.Printf("Ops per second : %f", float64 (count) / sum)
+	if len(timeRead) > 0 {
+
+		pts := w.calcStats(timeRead, "READ")
+		// Make a scatter plotter and set its style.	
+		s, err := plotter.NewScatter(pts)
+		if err != nil {
+			panic(err)
+    	}
+    
+		s.GlyphStyle.Color = color.RGBA{ B: 128, A: 255}
+		s.GlyphStyle.Radius = 1        
+		p.Add(s)
+	}
+
+	if len(timeUpdate) > 0 {
+
+		pts := w.calcStats(timeUpdate, "UPDATE")
+		// Make a scatter plotter and set its style.	
+		s, err := plotter.NewScatter(pts)
+		if err != nil {
+			panic(err)
+    	}
+    
+		s.GlyphStyle.Color = color.RGBA{ G: 128, A: 255}
+		s.GlyphStyle.Radius = 1        
+		p.Add(s)
+	}
+
+    // Save the plot to a PNG file.
+    if err := p.Save(20, 12, w.name + ".png"); err != nil {
+    	panic(err)
+    }
+
 }
 
 

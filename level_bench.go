@@ -28,7 +28,7 @@ func main() {
     	log.Printf("Picked up conf %s", c.name)
     	for _, w := range c.workList {
     		wg.Add(1)
-			go runWorkload(db, w, fds, &wg)
+			go w.RunWorkload(db, fds, &wg)
     	}
     	wg.Wait()
 	}
@@ -47,111 +47,119 @@ func confInit() ([] BenchConf) {
 
 	var conf []BenchConf
 /*
-//CONF1 CREATE 100K --> READ 100K	
-	{
-		var c BenchConf
-		c.name = "CREATE 100K"
-		c.workList = append(c.workList, Workload{1, 0, 0, 0, 100000})
-		c.reInitSetup = true
-		conf = append(conf, c)
-	}
+//CONF1 CREATE 10M --> READ 10M
+        {
+                var c BenchConf
+                c.name = "CREATE 10M"
+                c.workList = append(c.workList, Workload{1, 0, 0, 0, 10000000})
+                c.reInitSetup = true
+                conf = append(conf, c)
+        }
 
-	{
-		var c BenchConf
-		c.name = "READ 100K"
-		c.workList = append(c.workList, Workload{0, 1, 0, 0, 100000})
-		c.reInitSetup = false
-		conf = append(conf, c)
-	}
+        {
+                var c BenchConf
+                c.name = "READ 10M"
+                c.workList = append(c.workList, Workload{0, 1, 0, 0, 10000000})
+                c.reInitSetup = false
+                conf = append(conf, c)
+        }
+
+//CONF2 CREATE 5M --> CREATE(5M) AND UPDATE (5M)
+        {
+                var c BenchConf
+                c.name = "CREATE 5M"
+                c.workList = append(c.workList, Workload{1, 0, 0, 0, 5000000})
+                c.reInitSetup = true
+                conf = append(conf, c)
+        }
+
+        {
+                var c BenchConf
+                c.name = "CREATE 5M AND UPDATE 5M"
+                c.workList = append(c.workList, Workload{0.5, 0, 0.5, 0, 10000000})
+                c.reInitSetup = false
+                conf = append(conf, c)
+        }
+
+//CONF1 CREATE 5M --> CREATE(5M) AND READ(5M) -> UPDATE(5M) AND READ(5M)        
+        {
+                var c BenchConf
+                c.name = "CREATE 5M"
+                c.workList = append(c.workList, Workload{1, 0, 0, 0, 5000000})
+                c.reInitSetup = true
+                conf = append(conf, c)
+        }
+
+        {
+                var c BenchConf
+                c.name = "CREATE 5M READ 5M"
+                c.workList = append(c.workList, Workload{0.5, 0.5, 0, 0, 10000000})
+                c.reInitSetup = false
+                conf = append(conf, c)
+        }
+
+        {
+                var c BenchConf
+                c.name = "UPDATE 5M READ 5M"
+                c.workList = append(c.workList, Workload{0, 0.5, 0.5, 0, 10000000})
+                c.reInitSetup = false
+                conf = append(conf, c)
+        }
+        
+//CONF4 CREATE(5M) --> CREATE(5M) AND READ(5M) IN PARALLEL 
+//      --> UPDATE(5M) AND READ(5M) IN PARALLEL
+
+        {
+                var c BenchConf
+                c.name = "CREATE 5M"
+                c.workList = append(c.workList, Workload{1, 0, 0, 0, 5000000})  
+                c.reInitSetup = true
+                conf = append(conf, c)
+        }
+
+        {
+                var c BenchConf
+                c.name = "CREATE 5M READ 5M PARALLEL"
+                c.workList = append(c.workList, Workload{1, 0, 0, 0, 5000000})
+                c.workList = append(c.workList, Workload{0, 1, 0, 0, 5000000})
+                c.reInitSetup = false
+                conf = append(conf, c)
+        }
+        
+        
+        {
+                var c BenchConf
+                c.name = "UPDATE 5M READ 5M PARALLEL"
+                c.workList = append(c.workList, Workload{0, 0, 1, 0, 5000000})
+                c.workList = append(c.workList, Workload{0, 1, 0, 0, 5000000})
+                c.reInitSetup = false
+                conf = append(conf, c)
+        }
 */
+//CONF5 CREATE(5M) --> CREATE(5M) AND READ (5M) 4 THREADS
 
-/*
-//CONF2 CREATE 1M --> READ 1M	
-	c.name = "CREATE 1M"
-	c.workList = append(c.workList, Workload{1, 0, 0, 0, 1000000})
-	c.reInitSetup = true
-	conf = append(conf, c)
-	c = nil
+        {
+                var c BenchConf
+                c.name = "CREATE 5M"
+                c.workList = append(c.workList, Workload{"CREATE5M", 1, 0, 0, 0, 5000000, false})  
+                c.reInitSetup = true
+                conf = append(conf, c)
+        }
 
-	c.name = "READ 1M"
-	c.workList = append(c.workList, Workload{0, 1, 0, 0, 1000000})
-	c.reInitSetup = false
-	conf = append(conf, c)
-	c = nil
-
-//CONF3 CREATE 500K --> CREATE(500K) AND READ(500K) -> UPDATE(500K) AND READ(500K)	
-	c.name = "CREATE 500K"
-	c.workList = append(c.workList, Workload{1, 0, 0, 0, 500000})
-	c.reInitSetup = true
-	conf = append(conf, c)
-	c = nil
-
-	c.name = "CREATE 500K READ 500K"
-	c.workList = append(c.workList, Workload{0.5, 0.5, 0, 0, 1000000})
-	c.reInitSetup = false
-	conf = append(conf, c)
-	c = nil
-
-	c.name = "UPDATE 500K READ 500K"
-	c.workList = append(c.workList, Workload{0, 0.5, 0.5, 0, 1000000})
-	c.reInitSetup = false
-	conf = append(conf, c)
-	c = nil
-*/
-/*
-//CONF4 CREATE(500K) --> CREATE(500K) AND READ(500K) IN PARALLEL 
-//	--> UPDATE(500K) AND READ(500K) IN PARALLEL
-
-	{
-		var c BenchConf
-		c.name = "CREATE 500K"
-		c.workList = append(c.workList, Workload{1, 0, 0, 0, 500000})	
-		c.reInitSetup = true
-		conf = append(conf, c)
-	}
-
-	{
-		var c BenchConf
-		c.name = "CREATE 500K READ 500K"
-		c.workList = append(c.workList, Workload{1, 0, 0, 0, 500000})
-		c.workList = append(c.workList, Workload{0, 1, 0, 0, 500000})
-		c.reInitSetup = false
-		conf = append(conf, c)
-	}
-	
-	
-	{
-		var c BenchConf
-		c.name = "UPDATE 500K READ 500K"
-		c.workList = append(c.workList, Workload{0, 0, 1, 0, 500000})
-		c.workList = append(c.workList, Workload{0, 1, 0, 0, 500000})
-		c.reInitSetup = false
-		conf = append(conf, c)
-	}
-*/
-
-//CONF5 CREATE(500K) --> CREATE(500K) AND READ (500K) 4 THREADS
-
-	{
-		var c BenchConf
-		c.name = "CREATE 500K"
-		c.workList = append(c.workList, Workload{1, 0, 0, 0, 500000})	
-		c.reInitSetup = true
-		conf = append(conf, c)
-	}
-
-	{
-		var c BenchConf
-		c.name = "CREATE(500K) AND READ (500K) 4 THREADS"
-		c.workList = append(c.workList, Workload{1, 0, 0, 0, 500000})
-		c.workList = append(c.workList, Workload{0, 1, 0, 0, 500000})
-		c.workList = append(c.workList, Workload{0, 1, 0, 0, 500000})
-		c.workList = append(c.workList, Workload{0, 1, 0, 0, 500000})
-		c.workList = append(c.workList, Workload{0, 1, 0, 0, 500000})
-		c.reInitSetup = false
-		conf = append(conf, c)
-	}
-	
-	return conf
+        {
+                var c BenchConf
+                c.name = "CREATE(5M) AND READ (5M) 4 THREADS"
+                c.workList = append(c.workList, Workload{"CREATE5M", 1, 0, 0, 0, 5000000, true})
+                c.workList = append(c.workList, Workload{"UPDATE5M", 0, 0, 1, 0, 25000000, true})
+                c.workList = append(c.workList, Workload{"READ15M", 0, 1, 0, 0, 25000000, true})
+                c.workList = append(c.workList, Workload{"READ25M", 0, 1, 0, 0, 25000000, true})
+                c.workList = append(c.workList, Workload{"READ35M", 0, 1, 0, 0, 25000000, true})
+                c.workList = append(c.workList, Workload{"READ45M", 0, 1, 0, 0, 25000000, true})
+                c.reInitSetup = false
+                conf = append(conf, c)
+        }
+        
+        return conf
 
 }
+
