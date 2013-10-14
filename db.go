@@ -27,9 +27,9 @@ func (dbi *DBInfo) Init(name string) {
 	
 //  set filter policy
 //	filterPolicy := NewBloomFilter(10)
-//	options.SetFilterPolicy(filterPolicy)
+//	dbi.options.SetFilterPolicy(filterPolicy)
 
-//	options.SetCompression(SnappyCompression)
+//	dbi.options.SetCompression(SnappyCompression)
 
 	dbi.wo = NewWriteOptions()
 	dbi.ro = NewReadOptions()
@@ -75,3 +75,4 @@ func (dbi *DBInfo) Close() {
     	DestroyDatabase(dbi.name, dbi.options)
 	}
 }
+
