@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"math/rand"
 	"time"
 	"sync"
     "code.google.com/p/plotinum/plot"
@@ -89,55 +88,54 @@ func (w *Workload) RunWorkload(db DBInfo, f FileDataSource, wg *sync.WaitGroup) 
 	            log.Fatalf("DB Error in Put : %v", err)
 	        }
 	        w.stats.timeCreate = append(w.stats.timeCreate, elapsed)
-		    keyList = append(keyList, k)
-		    keyCount++
-        
+		    p := Packet{CREATE, k, false}
+		    storeRequest <- p
+		    <- storeResponse
+
         case READ:
-        	i := rand.Int63n(keyCount)
-            _, elapsed, err := db.Get(keyList[i])
+		    p := Packet{READ, "", false}
+		    storeRequest <- p
+		    p = <- storeResponse
+		    
+            _, elapsed, err := db.Get(p.key)
 	        if err != nil {
 	            log.Fatalf("DB Error in Put : %v", err)
 	        }
 	        w.stats.timeRead = append(w.stats.timeRead, elapsed)
         
         case UPDATE:
-        	i := rand.Int63n(keyCount)
-        	k := keyList[i]
-            v, elapsed, err := db.Get(k)
+
+		    p := Packet{READ, "", false}
+		    storeRequest <- p
+		    p = <- storeResponse
+
+            v, elapsed, err := db.Get(p.key)
 	        if err != nil {
 	            log.Fatalf("DB Error in Get : %v", err)
 	        }
-            elapsed, err = db.Set(k, v)
+            elapsed, err = db.Set(p.key, v)
 	        if err != nil {
 	            log.Fatalf("DB Error in Put : %v", err)
 	        }
 	        w.stats.timeUpdate = append(w.stats.timeUpdate, elapsed)
         
         case DELETE:
-        	i := rand.Int63n(keyCount)
-            elapsed, err := db.Delete(keyList[i])
+		    p := Packet{DELETE, "", false}
+		    storeRequest <- p
+		    p = <- storeResponse
+
+            elapsed, err := db.Delete(p.key)
 	        if err != nil {
 	            log.Fatalf("DB Error in Delete : %v", err)
 	        }
 	        w.stats.timeDelete = append(w.stats.timeDelete, elapsed)
-	        
+       
         }
     }    
    
 
 }
-/*
-func generateValidRandomKey() (key string) {
 
-	validKey := false
-	
-	for validKey == false {
-		i := rand.Int63n(keyCount)
-		k := keyList[i]
-		
-	}
-}
-*/
 func (w *Workload) calcStats(timeInfo []time.Duration, opType string) (plotter.XYs) {
 	
     var sum int64 = 0
