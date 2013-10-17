@@ -72,7 +72,6 @@ func (w *Workload) RunWorkload(db DBInfo, wg *sync.WaitGroup) {
     }
 
 	var i int64
-	log.Printf("OPLIST %v", opList)
     for i = 0; i < w.totalOps || !stop ; i++ {
     
         switch(opList[i%10]) {
@@ -111,12 +110,7 @@ func (w *Workload) RunWorkload(db DBInfo, wg *sync.WaitGroup) {
 		    p := StorePacket{READ, "", false}
 		    storeRequest <- p
 		    p = <- storeResponse
-/*
-            v, elapsed, err := db.Get(p.key)
-	        if err != nil {
-	            log.Fatalf("DB Error in Get : %v", err)
-	        }
-*/
+
 			v := rs.OneValue()
             elapsed, err := db.Set(p.key, v)
 	        if err != nil {
