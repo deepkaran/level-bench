@@ -10,15 +10,15 @@ type Store struct {
 	deletedKeys map[string]bool
 }
 
-type Packet struct {
+type StorePacket struct {
 
 	storeOp int
 	key string
 	ok bool
 }
 
-var storeRequest chan Packet
-var storeResponse chan Packet
+var storeRequest chan StorePacket
+var storeResponse chan StorePacket
 
 func (s *Store) Init() {
 	
@@ -39,7 +39,6 @@ func (s *Store) StoreKeeper() {
 			s.keyList = append(s.keyList, p.key)
 			s.keyCount++
 			p.ok = true
-			storeResponse <- p
 			
 		case READ:
 			p.key = s.generateValidRandomKey()
@@ -59,12 +58,17 @@ func (s *Store) StoreKeeper() {
 func (s *Store) generateValidRandomKey() (key string) {
 
 	validKey := false
+	key = ""
+	
+	if s.keyCount == 0 {
+		return key
+	}
 	
 	for validKey == false {
 		i := rand.Int63n(s.keyCount)
 		key = s.keyList[i]
 		if s.deletedKeys[key] {
-			validKey = false
+			validKey = true
 		} else {
 			validKey = true
 		}
