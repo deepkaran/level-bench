@@ -1,23 +1,22 @@
 package main
 
 import (
+	"bufio"
 	"log"
 	"math/rand"
-	"strconv"
 	"os"
-	"bufio"
-) 
+	"strconv"
+)
 
 type RandomSource struct {
-
-	masterKeys []string
-	nKeys int
+	masterKeys   []string
+	nKeys        int
 	masterValues []string
-	nValues int
-} 
+	nValues      int
+}
 
 type DataPacket struct {
-	key string
+	key   string
 	value string
 }
 
@@ -26,17 +25,17 @@ var dataSource chan DataPacket
 func (rs *RandomSource) Init() {
 
 	var err error
-	rs.masterKeys, err = readLines("master/keys.dat") 
-    if err != nil {
-        log.Fatalf("Unable to read master key file. Error: %v", err)
-    }
-    rs.nKeys = len(rs.masterKeys)
+	rs.masterKeys, err = readLines("master/keys.dat")
+	if err != nil {
+		log.Fatalf("Unable to read master key file. Error: %v", err)
+	}
+	rs.nKeys = len(rs.masterKeys)
 
-	rs.masterValues, err = readLines("master/values.dat") 
-    if err != nil {
-        log.Fatalf("Unable to read master value file. Error: %v", err)
-    }
-    rs.nValues = len(rs.masterValues)
+	rs.masterValues, err = readLines("master/values.dat")
+	if err != nil {
+		log.Fatalf("Unable to read master value file. Error: %v", err)
+	}
+	rs.nValues = len(rs.masterValues)
 
 }
 
@@ -51,8 +50,8 @@ func (rs *RandomSource) GenData() {
 
 }
 
-func (rs *RandomSource) OneValue() (string) {
-	
+func (rs *RandomSource) OneValue() string {
+
 	return rs.masterValues[rand.Intn(rs.nValues)]
 
 }
@@ -60,16 +59,16 @@ func (rs *RandomSource) OneValue() (string) {
 // readLines reads a whole file into memory
 // and returns a slice of its lines.
 func readLines(path string) ([]string, error) {
-  file, err := os.Open(path)
-  if err != nil {
-    return nil, err
-  }
-  defer file.Close()
- 
-  var lines []string
-  scanner := bufio.NewScanner(file)
-  for scanner.Scan() {
-    lines = append(lines, scanner.Text())
-  }
-  return lines, scanner.Err()
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	return lines, scanner.Err()
 }
