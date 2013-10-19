@@ -1,18 +1,15 @@
 package main
 
 import (
-	"bufio"
-	"log"
 	"math/rand"
-	"os"
-	"strconv"
 )
 
 type RandomSource struct {
-	masterKeys   []string
-	nKeys        int
-	masterValues []string
-	nValues      int
+	keySize  int
+	valSize  int
+	src      rand.Source
+	valStash [5000]string
+	stashLen int
 }
 
 type DataPacket struct {
@@ -24,51 +21,52 @@ var dataSource chan DataPacket
 
 func (rs *RandomSource) Init() {
 
-	var err error
-	rs.masterKeys, err = readLines("master/keys.dat")
-	if err != nil {
-		log.Fatalf("Unable to read master key file. Error: %v", err)
-	}
-	rs.nKeys = len(rs.masterKeys)
+	rs.keySize = 100
+	rs.valSize = 100
+	rs.src = rand.NewSource(1028890720402726901)
+	rs.initValueStash()
+	rs.stashLen = 5000
+}
 
-	rs.masterValues, err = readLines("master/values.dat")
-	if err != nil {
-		log.Fatalf("Unable to read master value file. Error: %v", err)
+func (rs *RandomSource) randString(n int) string {
+	var p []byte
+	todo := n
+	for {
+		val := rs.src.Int63() //ASCII RANGE 33 - 122
+		for i := 0; i < 8; i++ {
+			offset := (val & 0xff) % 50
+			p = append(p, byte(33+offset))
+			todo--
+			if todo == 0 {
+				return string(p)
+			}
+			val >>= 8
+		}
 	}
-	rs.nValues = len(rs.masterValues)
 
+	panic("unreachable")
 }
 
 func (rs *RandomSource) GenData() {
 
 	for {
 		var p DataPacket
-		p.key = rs.masterKeys[rand.Intn(rs.nKeys)] + "_" + strconv.Itoa(rand.Intn(100000)) + strconv.Itoa(rand.Intn(100000))
-		p.value = rs.masterValues[rand.Intn(rs.nValues)]
+		p.key = rs.randString(rs.keySize)
+		p.value = rs.randString(rs.valSize)
 		dataSource <- p
 	}
 
 }
 
-func (rs *RandomSource) OneValue() string {
+func (rs *RandomSource) initValueStash() {
 
-	return rs.masterValues[rand.Intn(rs.nValues)]
+	for i := 0; i < rs.stashLen; i++ {
 
+		rs.valStash[i] = rs.randString(rs.valSize)
+	}
 }
 
-// readLines reads a whole file into memory
-// and returns a slice of its lines.
-func readLines(path string) ([]string, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
+func (rs *RandomSource) OneValue() string {
 
-	var lines []string
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
-	}
-	return lines, scanner.Err()
+	return rs.valStash[rand.Intn(rs.stashLen)]
 }

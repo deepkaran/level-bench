@@ -25,8 +25,8 @@ func main() {
 	storeRequest = make(chan StorePacket)
 	storeResponse = make(chan StorePacket)
 
-	statAdd = make(chan StatPacket, 100)
-	dataSource = make(chan DataPacket, 100)
+	statAdd = make(chan StatPacket, 1000)
+	dataSource = make(chan DataPacket, 1000)
 
 	go st.StoreKeeper()
 	go stat.StatsManager()
@@ -77,24 +77,23 @@ func confInit() []BenchConf {
 		c.name = "CREATE_INIT"
 		c.reInitSetup = true
 
-		w.Init("C_I", 1, 0, 0, 0, 500000, false)
+		w.Init("CREATE_I", 1, 0, 0, 0, 500000, false)
 		c.workList = append(c.workList, w)
 
 		conf = append(conf, c)
 	}
-
 	/*
-	   {
-	           var c BenchConf
-	           var w Workload
-	           c.name = "READ_INIT"
-	           c.reInitSetup = false
+		{
+			var c BenchConf
+			var w Workload
+			c.name = "READ_INIT"
+			c.reInitSetup = false
 
-	           w.Init("R_I", 0, 1, 0, 0, 1000000, true)
-	           c.workList = append(c.workList, w)
+			w.Init("READ_I", 0, 1, 0, 0, 10, false)
+			c.workList = append(c.workList, w)
 
-	           conf = append(conf, c)
-	   }
+			conf = append(conf, c)
+		}
 	*/
 
 	{
@@ -105,13 +104,13 @@ func confInit() []BenchConf {
 		c.reInitSetup = false
 		c.runSecs = 60
 
-		w.Init("W1_P", 1, 0, 0, 0, 0, true)
+		w.Init("CREATE_P", 1, 0, 0, 0, 0, true)
 		c.workList = append(c.workList, w)
-		w.Init("W2_P", 0, 1, 0, 0, 0, true)
+		w.Init("READ_P", 0, 1, 0, 0, 0, true)
 		c.workList = append(c.workList, w)
-		w.Init("W3_P", 0, 0, 1, 0, 0, true)
+		w.Init("UPDATE_P", 0, 0, 1, 0, 0, true)
 		c.workList = append(c.workList, w)
-		w.Init("W4_P", 0, 0, 0, 0.1, 0, true)
+		w.Init("DELETE_P", 0, 0, 0, 0.1, 0, true)
 		c.workList = append(c.workList, w)
 
 		conf = append(conf, c)

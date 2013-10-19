@@ -54,7 +54,7 @@ func (s *Stats) calcStats(timeInfo []time.Duration, opType string, drawPlot bool
 	stats := summstat.NewStats()
 
 	for i, x := range timeInfo {
-		if x.Nanoseconds() > 1 && x.Nanoseconds() < 5000000 {
+		if x.Nanoseconds() > 1 && x.Nanoseconds() < 10000000 {
 			pts[i].X = float64(i)
 			pts[i].Y = float64(x.Nanoseconds()) / 1000.0
 		}
