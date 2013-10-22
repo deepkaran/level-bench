@@ -9,12 +9,9 @@ import (
 	"time"
 )
 
-type Stats struct {
-	timeCreate []time.Duration
-	timeRead   []time.Duration
-	timeUpdate []time.Duration
-	timeDelete []time.Duration
-}
+type TimeInfo []time.Duration
+
+type Stats [4]TimeInfo
 
 type StatPacket struct {
 	statOp  int
@@ -27,37 +24,21 @@ func (s *Stats) StatsManager() {
 
 	for {
 		p := <-statAdd
-
-		switch p.statOp {
-
-		case CREATE:
-			s.timeCreate = append(s.timeCreate, p.latency)
-
-		case READ:
-			s.timeRead = append(s.timeRead, p.latency)
-
-		case UPDATE:
-			s.timeUpdate = append(s.timeUpdate, p.latency)
-
-		case DELETE:
-			s.timeDelete = append(s.timeDelete, p.latency)
-
-		}
+		s[p.statOp] = append(s[p.statOp], p.latency)
 	}
 
 }
 
-func (s *Stats) calcStats(timeInfo []time.Duration, opType string, drawPlot bool) {
+func (s *Stats) calcStats(timeInfo []time.Duration, opType string) {
+
+	if len(timeInfo) == 0 {
+		return
+	}
 
 	var sum int64 = 0
-	pts := make(plotter.XYs, len(timeInfo))
 	stats := summstat.NewStats()
 
-	for i, x := range timeInfo {
-		if x.Nanoseconds() > 1 && x.Nanoseconds() < 10000000 {
-			pts[i].X = float64(i)
-			pts[i].Y = float64(x.Nanoseconds()) / 1000.0
-		}
+	for _, x := range timeInfo {
 		sample := summstat.Sample(float64(x.Nanoseconds()) / 1000.0)
 		stats.AddSample(sample)
 		sum += x.Nanoseconds()
@@ -76,12 +57,22 @@ func (s *Stats) calcStats(timeInfo []time.Duration, opType string, drawPlot bool
 	mean := stats.Mean()
 	log.Printf("Ops per second Mean: %v\n", 1000000/mean)
 
-	if drawPlot {
-		s.drawPlot(pts, opType)
-	}
 }
 
-func (s *Stats) drawPlot(pts plotter.XYs, opType string) {
+func (s *Stats) drawPlot(timeInfo []time.Duration, opType string) {
+
+	if len(timeInfo) == 0 {
+		return
+	}
+
+	pts := make(plotter.XYs, len(timeInfo))
+
+	for i, x := range timeInfo {
+		if x.Nanoseconds() > 1 && x.Nanoseconds() < 10000000 {
+			pts[i].X = float64(i)
+			pts[i].Y = float64(x.Nanoseconds()) / 1000.0
+		}
+	}
 
 	// Create a new plot, set its title and
 	// axis labels.
@@ -95,7 +86,6 @@ func (s *Stats) drawPlot(pts plotter.XYs, opType string) {
 	p.Y.Label.Text = "Latency in Microseconds"
 	// Draw a grid behind the data
 	p.Add(plotter.NewGrid())
-
 	// Make a scatter plotter and set its style.
 	sc, e := plotter.NewScatter(pts)
 	if e != nil {
@@ -115,23 +105,14 @@ func (s *Stats) drawPlot(pts plotter.XYs, opType string) {
 
 func (s *Stats) ReportSummary(drawPlot bool) {
 
-	if len(s.timeCreate) > 0 {
-		s.calcStats(s.timeCreate, "CREATE", drawPlot)
-		s.timeCreate = nil
-	}
-	if len(s.timeRead) > 0 {
-		s.calcStats(s.timeRead, "READ", drawPlot)
-		s.timeRead = nil
+	for i, o := range opName {
+		s.calcStats(s[i], o)
 	}
 
-	if len(s.timeUpdate) > 0 {
-		s.calcStats(s.timeUpdate, "UPDATE", drawPlot)
-		s.timeUpdate = nil
-	}
-
-	if len(s.timeDelete) > 0 {
-		s.calcStats(s.timeDelete, "DELETE", drawPlot)
-		s.timeDelete = nil
+	if drawPlot {
+		for i, o := range opName {
+			s.drawPlot(s[i], o)
+		}
 	}
 
 }

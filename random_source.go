@@ -32,10 +32,10 @@ func (rs *RandomSource) randString(n int) string {
 	var p []byte
 	todo := n
 	for {
-		val := rs.src.Int63() //ASCII RANGE 33 - 122
+		val := rs.src.Int63()
 		for i := 0; i < 8; i++ {
 			offset := (val & 0xff) % 50
-			p = append(p, byte(33+offset))
+			p = append(p, byte(33+offset)) //ASCII RANGE 33 - 122
 			todo--
 			if todo == 0 {
 				return string(p)
@@ -43,8 +43,6 @@ func (rs *RandomSource) randString(n int) string {
 			val >>= 8
 		}
 	}
-
-	panic("unreachable")
 }
 
 func (rs *RandomSource) GenData() {

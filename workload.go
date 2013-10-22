@@ -24,6 +24,8 @@ const (
 	NOOP   = iota
 )
 
+var opName []string
+
 func (w *Workload) Init(name string, ratioCreate float64, ratioRead float64, ratioUpdate float64,
 	ratioDelete float64, totalOps int64, reportStats bool) {
 
@@ -34,7 +36,7 @@ func (w *Workload) Init(name string, ratioCreate float64, ratioRead float64, rat
 	w.ratioDelete = ratioDelete
 	w.totalOps = totalOps
 	w.reportStats = reportStats
-
+	opName = []string{"CREATE", "READ", "UPDATE", "DELETE"}
 }
 
 func (w *Workload) RunWorkload(db DBInfo, wg *sync.WaitGroup) {

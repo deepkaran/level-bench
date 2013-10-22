@@ -35,9 +35,10 @@ func (s *Store) StoreKeeper() {
 		switch p.storeOp {
 
 		case CREATE:
-			s.keyList = append(s.keyList, p.key)
-			s.keyCount++
-			p.ok = true
+			if s.keyCount < 20000000 { //TODO: right now storing max of 20M keys. Improve this?
+				s.keyList = append(s.keyList, p.key)
+				s.keyCount++
+			}
 
 		case READ:
 			p.key = s.generateValidRandomKey()

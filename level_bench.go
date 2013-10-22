@@ -58,6 +58,7 @@ func main() {
 		wg.Wait()
 	}
 
+	db.Close()
 	stat.ReportSummary(true)
 }
 
@@ -82,6 +83,7 @@ func confInit() []BenchConf {
 
 		conf = append(conf, c)
 	}
+
 	/*
 		{
 			var c BenchConf
@@ -89,7 +91,7 @@ func confInit() []BenchConf {
 			c.name = "READ_INIT"
 			c.reInitSetup = false
 
-			w.Init("READ_I", 0, 1, 0, 0, 10, false)
+			w.Init("READ_I", 0, 1, 0, 0, 100000, true)
 			c.workList = append(c.workList, w)
 
 			conf = append(conf, c)
