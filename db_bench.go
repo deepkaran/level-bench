@@ -1,12 +1,14 @@
 package main
 
 import (
+	"github.com/deepkaran/level-bench/dbaccess"
 	"log"
 	"sync"
 	"time"
 )
 
-var db DBInfo
+//var db dbaccess.ForestDB
+var db dbaccess.LevelDB
 var rs RandomSource
 var st Store
 var stat Stats
@@ -43,7 +45,7 @@ func main() {
 		log.Printf("Picked up conf %s", c.name)
 		for i := range c.workList {
 			wg.Add(1)
-			go c.workList[i].RunWorkload(db, &wg)
+			go c.workList[i].RunWorkload(&db, &wg)
 
 		}
 		if c.runSecs > 0 {
@@ -59,7 +61,7 @@ func main() {
 	}
 
 	db.Close()
-	stat.ReportSummary(true)
+	stat.ReportSummary(false)
 }
 
 func reInitSetup() {
@@ -83,7 +85,6 @@ func confInit() []BenchConf {
 
 		conf = append(conf, c)
 	}
-
 	/*
 		{
 			var c BenchConf
@@ -91,13 +92,12 @@ func confInit() []BenchConf {
 			c.name = "READ_INIT"
 			c.reInitSetup = false
 
-			w.Init("READ_I", 0, 1, 0, 0, 100000, true)
+			w.Init("READ_I", 0, 1, 0, 0, 500000, false)
 			c.workList = append(c.workList, w)
 
 			conf = append(conf, c)
 		}
 	*/
-
 	{
 		var c BenchConf
 		var w Workload

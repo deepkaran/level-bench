@@ -1,6 +1,7 @@
 package main
 
 import (
+	. "github.com/deepkaran/level-bench/dbaccess"
 	"log"
 	"sync"
 	"time"
@@ -39,7 +40,7 @@ func (w *Workload) Init(name string, ratioCreate float64, ratioRead float64, rat
 	opName = []string{"CREATE", "READ", "UPDATE", "DELETE"}
 }
 
-func (w *Workload) RunWorkload(db DBInfo, wg *sync.WaitGroup) {
+func (w *Workload) RunWorkload(db DBAccess, wg *sync.WaitGroup) {
 
 	defer wg.Done()
 
@@ -82,7 +83,7 @@ func (w *Workload) RunWorkload(db DBInfo, wg *sync.WaitGroup) {
 			v := d.value
 			elapsed, err := db.Set(k, v)
 			if err != nil {
-				log.Fatalf("DB Error in Put : %v", err)
+				log.Printf("DB Error in Create : %v", err)
 			}
 			if w.reportStats {
 				s := StatPacket{CREATE, elapsed}
@@ -90,6 +91,10 @@ func (w *Workload) RunWorkload(db DBInfo, wg *sync.WaitGroup) {
 			}
 			p := StorePacket{CREATE, k, false}
 			storeRequest <- p
+			//log.Printf("\nCREATE \nKEY - %s \nVALUE - %s", k, v)
+			//if i % 50000 == 0 {
+			//	db.Compact()
+			//}
 
 		case READ:
 			p := StorePacket{READ, "", false}
@@ -97,8 +102,9 @@ func (w *Workload) RunWorkload(db DBInfo, wg *sync.WaitGroup) {
 			p = <-storeResponse
 
 			_, elapsed, err := db.Get(p.key)
+			//log.Printf("\nREAD \nKEY - %s \nVALUE - %s", p.key, v)
 			if err != nil {
-				log.Fatalf("DB Error in Put : %v", err)
+				log.Printf("DB Error in Read : %v", err)
 			}
 			if w.reportStats {
 				s := StatPacket{READ, elapsed}
@@ -114,12 +120,13 @@ func (w *Workload) RunWorkload(db DBInfo, wg *sync.WaitGroup) {
 			v := rs.OneValue()
 			elapsed, err := db.Set(p.key, v)
 			if err != nil {
-				log.Fatalf("DB Error in Put : %v", err)
+				log.Printf("DB Error in Update : %v", err)
 			}
 			if w.reportStats {
 				s := StatPacket{UPDATE, elapsed}
 				statAdd <- s
 			}
+			//log.Printf("UPDATE \n%s \n%s", p.key, v)
 
 		case DELETE:
 			p := StorePacket{DELETE, "", false}
@@ -128,16 +135,19 @@ func (w *Workload) RunWorkload(db DBInfo, wg *sync.WaitGroup) {
 
 			elapsed, err := db.Delete(p.key)
 			if err != nil {
-				log.Fatalf("DB Error in Delete : %v", err)
+				log.Printf("DB Error in Delete : %v", err)
 			}
+
 			if w.reportStats {
 				s := StatPacket{DELETE, elapsed}
 				statAdd <- s
 			}
+			//log.Printf("DELETE \n%s", p.key)
 
 		case NOOP:
 			time.Sleep(time.Microsecond * 10)
 		}
+
 	}
 	log.Printf("Finished Workload %s", w.name)
 

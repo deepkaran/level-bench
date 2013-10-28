@@ -5,9 +5,10 @@ import (
 )
 
 type Store struct {
-	keyList     []string
-	keyCount    int64
-	deletedKeys map[string]bool
+	keyList       []string
+	MAX_KEY_COUNT int64
+	keyCount      int64
+	currKeyIndex  int64
 }
 
 type StorePacket struct {
@@ -21,9 +22,10 @@ var storeResponse chan StorePacket
 
 func (s *Store) Init() {
 
-	s.keyList = nil
+	s.MAX_KEY_COUNT = 5000000
+	s.keyList = make([]string, s.MAX_KEY_COUNT)
 	s.keyCount = 0
-	s.deletedKeys = make(map[string]bool)
+	s.currKeyIndex = 0
 
 }
 
@@ -35,19 +37,25 @@ func (s *Store) StoreKeeper() {
 		switch p.storeOp {
 
 		case CREATE:
-			if s.keyCount < 20000000 { //TODO: right now storing max of 20M keys. Improve this?
-				s.keyList = append(s.keyList, p.key)
+
+			s.keyList[s.currKeyIndex] = p.key
+			s.currKeyIndex++
+			if s.keyCount < s.MAX_KEY_COUNT {
 				s.keyCount++
+			}
+			if s.currKeyIndex == s.MAX_KEY_COUNT {
+				s.currKeyIndex = s.MAX_KEY_COUNT / 2
 			}
 
 		case READ:
-			p.key = s.generateValidRandomKey()
+			p.key, _ = s.generateValidRandomKey(p.storeOp)
 			p.ok = true
 			storeResponse <- p
 
 		case DELETE:
-			p.key = s.generateValidRandomKey()
-			s.deletedKeys[p.key] = true
+			var idx int64
+			p.key, idx = s.generateValidRandomKey(p.storeOp)
+			s.deleteFromStore(idx)
 			p.ok = true
 			storeResponse <- p
 		}
@@ -55,23 +63,27 @@ func (s *Store) StoreKeeper() {
 
 }
 
-func (s *Store) generateValidRandomKey() (key string) {
+func (s *Store) generateValidRandomKey(op int) (key string, index int64) {
 
-	validKey := false
 	key = ""
-
 	if s.keyCount == 0 {
-		return key
+		return key, 0
 	}
 
-	for validKey == false {
-		i := rand.Int63n(s.keyCount)
-		key = s.keyList[i]
-		if s.deletedKeys[key] {
-			validKey = true
-		} else {
-			validKey = true
-		}
+	var i int64
+	if op == READ {
+		i = rand.Int63n(s.keyCount)
+	} else if op == DELETE {
+		i = s.keyCount/2 + rand.Int63n(s.keyCount/2)
 	}
-	return key
+	key = s.keyList[i]
+
+	return key, i
+}
+
+func (s *Store) deleteFromStore(index int64) {
+
+	s.keyList[index] = s.keyList[s.keyCount-1]
+	s.keyCount--
+	s.currKeyIndex = s.keyCount
 }

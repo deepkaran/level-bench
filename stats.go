@@ -81,7 +81,7 @@ func (s *Stats) drawPlot(timeInfo []time.Duration, opType string) {
 		panic(err)
 	}
 
-	p.Title.Text = "LevelDB Performance" + opType
+	p.Title.Text = opType + "Performance"
 	p.X.Label.Text = "Number of Operations"
 	p.Y.Label.Text = "Latency in Microseconds"
 	// Draw a grid behind the data

@@ -24,8 +24,8 @@ func (rs *RandomSource) Init() {
 	rs.keySize = 100
 	rs.valSize = 100
 	rs.src = rand.NewSource(1028890720402726901)
-	rs.initValueStash()
 	rs.stashLen = 5000
+	rs.initValueStash()
 }
 
 func (rs *RandomSource) randString(n int) string {
