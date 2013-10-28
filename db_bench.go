@@ -5,23 +5,34 @@ import (
 	"log"
 	"sync"
 	"time"
+	"flag"
 )
 
-//var db dbaccess.ForestDB
-var db dbaccess.LevelDB
 var rs RandomSource
 var st Store
 var stat Stats
 var stop bool
 
+var dbmap = map[string]dbaccess.DBAccess{
+	"leveldb":   &dbaccess.LevelDB{},
+	//"forrestdb": &dbaccess.ForestDB{},
+	"cbtree":	&dbaccess.CBtreeDB{},
+}
+
 type BenchConf struct {
-	name        string
-	workList    []Workload
+	name		string
+	workList	[]Workload
 	reInitSetup bool
-	runSecs     int64
+	runSecs	 int64
 }
 
 func main() {
+	flag.Parse()
+	args := flag.Args()
+	if len(args) < 1 {
+		log.Panicln("Please enter the db name you want to benchmark")
+	}
+	db := dbmap[flag.Args()[0]]
 
 	conf := confInit()
 	storeRequest = make(chan StorePacket)
@@ -38,14 +49,14 @@ func main() {
 
 	for _, c := range conf {
 		if c.reInitSetup {
-			reInitSetup()
+			reInitSetup(db)
 		}
 		var wg sync.WaitGroup
 		stop = false
 		log.Printf("Picked up conf %s", c.name)
 		for i := range c.workList {
 			wg.Add(1)
-			go c.workList[i].RunWorkload(&db, &wg)
+			go c.workList[i].RunWorkload(db, &wg)
 
 		}
 		if c.runSecs > 0 {
@@ -64,7 +75,7 @@ func main() {
 	stat.ReportSummary(false)
 }
 
-func reInitSetup() {
+func reInitSetup(db dbaccess.DBAccess) {
 	db.Close()
 	db.Init("bench")
 	st.Init()
@@ -80,7 +91,7 @@ func confInit() []BenchConf {
 		c.name = "CREATE_INIT"
 		c.reInitSetup = true
 
-		w.Init("CREATE_I", 1, 0, 0, 0, 500000, false)
+		w.Init("CREATE_I", 1, 0, 0, 0, 1000, false)
 		c.workList = append(c.workList, w)
 
 		conf = append(conf, c)
@@ -104,7 +115,7 @@ func confInit() []BenchConf {
 
 		c.name = "CREATE_READ_UPDATE_DELETE_PARALLEL"
 		c.reInitSetup = false
-		c.runSecs = 60
+		c.runSecs = 10
 
 		w.Init("CREATE_P", 1, 0, 0, 0, 0, true)
 		c.workList = append(c.workList, w)

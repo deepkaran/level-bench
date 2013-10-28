@@ -8,12 +8,12 @@ import (
 )
 
 type Workload struct {
-	name        string
+	name		string
 	ratioCreate float64
 	ratioRead   float64
 	ratioUpdate float64
 	ratioDelete float64
-	totalOps    int64
+	totalOps	int64
 	reportStats bool
 }
 
@@ -41,7 +41,6 @@ func (w *Workload) Init(name string, ratioCreate float64, ratioRead float64, rat
 }
 
 func (w *Workload) RunWorkload(db DBAccess, wg *sync.WaitGroup) {
-
 	defer wg.Done()
 
 	log.Printf("Starting Workload %s", w.name)

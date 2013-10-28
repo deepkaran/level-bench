@@ -8,8 +8,8 @@ import (
 )
 
 type ForestDB struct {
-	name        string
-	c           [2]*Conn //ForestDB needs separate handle for read and write
+	name		string
+	c			[2]*Conn //ForestDB needs separate handle for read and write
 	compact_num int
 }
 
