@@ -8,9 +8,10 @@ import (
 )
 
 type ForestDB struct {
-	name		string
-	c			[2]*Conn //ForestDB needs separate handle for read and write
-	compact_num int
+	name        string
+	c           [2]*Conn //ForestDB needs separate handle for read and write
+	compactNum  int
+	compactName string
 }
 
 func (fdb *ForestDB) Init(name string) {
@@ -26,7 +27,8 @@ func (fdb *ForestDB) Init(name string) {
 		}
 	}
 
-	fdb.compact_num = 1
+	fdb.compactNum = 1
+
 }
 
 func (fdb *ForestDB) Set(k string, v string) (time.Duration, error) {
@@ -60,12 +62,13 @@ func (fdb *ForestDB) Delete(k string) (time.Duration, error) {
 func (fdb *ForestDB) Compact() {
 
 	log.Println("Reached Compaction")
-	filename := fdb.name + strconv.Itoa(fdb.compact_num)
-	err := fdb.c[0].Compact(filename)
+	fdb.compactName = fdb.name + strconv.Itoa(fdb.compactNum)
+	err := fdb.c[0].Compact(fdb.compactName)
 	if err != nil {
 		log.Printf("DB Error in Compact : %v", err)
 	}
-	fdb.compact_num++
+	fdb.compactNum++
+	fdb.reopenConn()
 
 }
 
@@ -76,5 +79,13 @@ func (fdb *ForestDB) Close() {
 		fdb.c[1].Close()
 		Shutdown()
 	}
+}
 
+func (fdb *ForestDB) reopenConn() {
+
+	var err error
+	fdb.c[1], err = Open(fdb.compactName)
+	if err != nil {
+		log.Fatalf("Open failed: %v", err)
+	}
 }

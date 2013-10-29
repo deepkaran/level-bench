@@ -8,12 +8,12 @@ import (
 )
 
 type Workload struct {
-	name		string
+	name        string
 	ratioCreate float64
 	ratioRead   float64
 	ratioUpdate float64
 	ratioDelete float64
-	totalOps	int64
+	totalOps    int64
 	reportStats bool
 }
 
@@ -91,17 +91,19 @@ func (w *Workload) RunWorkload(db DBAccess, wg *sync.WaitGroup) {
 			p := StorePacket{CREATE, k, false}
 			storeRequest <- p
 			//log.Printf("\nCREATE \nKEY - %s \nVALUE - %s", k, v)
-			//if i % 50000 == 0 {
-			//	db.Compact()
-			//}
+			if fdb, ok := db.(*ForestDB); (i%50000 == 0) && ok {
+				fdb.Compact()
+			}
 
 		case READ:
 			p := StorePacket{READ, "", false}
 			storeRequest <- p
 			p = <-storeResponse
 
-			_, elapsed, err := db.Get(p.key)
-			//log.Printf("\nREAD \nKEY - %s \nVALUE - %s", p.key, v)
+			v, elapsed, err := db.Get(p.key)
+			if v == "" {
+				log.Printf("\nERROR!!!! DB RETURNED EMPTY VALUE!!!! \nKEY - %s \nVALUE - %s", p.key, v)
+			}
 			if err != nil {
 				log.Printf("DB Error in Read : %v", err)
 			}

@@ -1,39 +1,37 @@
 package dbaccess
 
 import (
-	"time"
-	"os"
 	"fmt"
 	"github.com/couchbaselabs/indexing/btree"
-) 
-
+	"os"
+	"time"
+)
 
 type CBtreeDB struct {
 	name string
-	bt *btree.BTree
+	bt   *btree.BTree
 }
 
-
 var conf = btree.Config{
-	Idxfile: "./data/cbtreeIndexfile.dat",
-	Kvfile:  "./data/cbtreeKvfile.dat",
+	Idxfile: "./cbtree/cbtreeIndexfile.dat",
+	Kvfile:  "./cbtree/cbtreeKvfile.dat",
 	IndexConfig: btree.IndexConfig{
 		Sectorsize: 512,
 		Flistsize:  1000 * btree.OFFSET_SIZE,
-		Blocksize:  4* 1024,
+		Blocksize:  4 * 1024,
 	},
-	Maxlevel:	  6,
+	Maxlevel:      6,
 	RebalanceThrs: 25,
 	AppendRatio:   0.7,
-	DrainRate:	 200,
+	DrainRate:     200,
 	MaxLeafCache:  1000,
-	Sync:		  false,
-	Nocache:	   false,
+	Sync:          false,
+	Nocache:       false,
 }
 
 func (dbi *CBtreeDB) Init(name string) {
 	fmt.Println("Initialize...")
-	os.MkdirAll("./data", 0770)
+	os.MkdirAll("./cbtree", 0770)
 	dbi.name = name
 	//os.Remove(conf.Idxfile)
 	//os.Remove(conf.Kvfile)
@@ -63,7 +61,7 @@ func (dbi *CBtreeDB) Get(k string) (string, time.Duration, error) {
 	} else {
 		return "", elapsed, nil
 	}
-	
+
 }
 
 func (dbi *CBtreeDB) Delete(k string) (time.Duration, error) {
@@ -78,6 +76,6 @@ func (dbi *CBtreeDB) Close() {
 		dbi.bt.Close()
 		//os.Remove(conf.Idxfile)
 		//os.Remove(conf.Kvfile)
+		os.RemoveAll("./cbtree")
 	}
 }
-

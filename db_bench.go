@@ -1,11 +1,11 @@
 package main
 
 import (
+	"flag"
 	"github.com/deepkaran/level-bench/dbaccess"
 	"log"
 	"sync"
 	"time"
-	"flag"
 )
 
 var rs RandomSource
@@ -14,16 +14,16 @@ var stat Stats
 var stop bool
 
 var dbmap = map[string]dbaccess.DBAccess{
-	"leveldb":   &dbaccess.LevelDB{},
-	//"forrestdb": &dbaccess.ForestDB{},
-	"cbtree":	&dbaccess.CBtreeDB{},
+	"leveldb":  &dbaccess.LevelDB{},
+	"forestdb": &dbaccess.ForestDB{},
+	"cbtree":   &dbaccess.CBtreeDB{},
 }
 
 type BenchConf struct {
-	name		string
-	workList	[]Workload
+	name        string
+	workList    []Workload
 	reInitSetup bool
-	runSecs	 int64
+	runSecs     int64
 }
 
 func main() {
@@ -103,12 +103,13 @@ func confInit() []BenchConf {
 			c.name = "READ_INIT"
 			c.reInitSetup = false
 
-			w.Init("READ_I", 0, 1, 0, 0, 500000, false)
+			w.Init("READ_I", 0, 1, 0, 0, 1000, true)
 			c.workList = append(c.workList, w)
 
 			conf = append(conf, c)
 		}
 	*/
+
 	{
 		var c BenchConf
 		var w Workload
