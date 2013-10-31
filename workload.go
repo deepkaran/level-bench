@@ -91,11 +91,16 @@ func (w *Workload) RunWorkload(db DBAccess, wg *sync.WaitGroup) {
 			p := StorePacket{CREATE, k, false}
 			storeRequest <- p
 			//log.Printf("\nCREATE \nKEY - %s \nVALUE - %s", k, v)
-			if fdb, ok := db.(*ForestDB); (i%50000 == 0) && ok {
+			if fdb, ok := db.(*ForestDB); ((i+1)%50000 == 0) && ok {
 				fdb.Compact()
 			}
 
 		case READ:
+
+			if fdb, ok := db.(*ForestDB); fdb.WaitForCompaction && ok {
+				time.Sleep(time.Microsecond * 1)
+				continue
+			}
 			p := StorePacket{READ, "", false}
 			storeRequest <- p
 			p = <-storeResponse
@@ -104,6 +109,7 @@ func (w *Workload) RunWorkload(db DBAccess, wg *sync.WaitGroup) {
 			if v == "" {
 				log.Printf("\nERROR!!!! DB RETURNED EMPTY VALUE!!!! \nKEY - %s \nVALUE - %s", p.key, v)
 			}
+			//log.Printf("\nREAD \nKEY - %s \nVALUE - %s", p.key, v)
 			if err != nil {
 				log.Printf("DB Error in Read : %v", err)
 			}
