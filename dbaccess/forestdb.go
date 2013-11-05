@@ -37,8 +37,8 @@ func (fdb *ForestDB) Set(k string, v string) (time.Duration, error) {
 
 	start := time.Now()
 	err := fdb.c[0].Put([]byte(k), []byte(""), []byte(v))
-	elapsed := time.Since(start)
 	fdb.c[0].Commit()
+	elapsed := time.Since(start)
 	return elapsed, err
 }
 
@@ -55,8 +55,8 @@ func (fdb *ForestDB) Delete(k string) (time.Duration, error) {
 
 	start := time.Now()
 	err := fdb.c[0].Delete([]byte(k))
-	elapsed := time.Since(start)
 	fdb.c[0].Commit()
+	elapsed := time.Since(start)
 	return elapsed, err
 
 }

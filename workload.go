@@ -90,17 +90,25 @@ func (w *Workload) RunWorkload(db DBAccess, wg *sync.WaitGroup) {
 			}
 			p := StorePacket{CREATE, k, false}
 			storeRequest <- p
-			//log.Printf("\nCREATE \nKEY - %s \nVALUE - %s", k, v)
+			//log.Printf("CREATE \nKEY | %s \nVALUE | %s", k, v)
 			if fdb, ok := db.(*ForestDB); ((i+1)%50000 == 0) && ok {
 				fdb.Compact()
+			}
+			if cs, ok := db.(*CouchStore); ((i+1)%50000 == 0) && ok {
+				cs.Compact()
 			}
 
 		case READ:
 
-			if fdb, ok := db.(*ForestDB); fdb.WaitForCompaction && ok {
+			if fdb, ok := db.(*ForestDB); ok && fdb.WaitForCompaction {
 				time.Sleep(time.Microsecond * 1)
 				continue
 			}
+			if cs, ok := db.(*CouchStore); ok && cs.WaitForCompaction {
+				time.Sleep(time.Microsecond * 1)
+				continue
+			}
+
 			p := StorePacket{READ, "", false}
 			storeRequest <- p
 			p = <-storeResponse
@@ -109,7 +117,7 @@ func (w *Workload) RunWorkload(db DBAccess, wg *sync.WaitGroup) {
 			if v == "" {
 				log.Printf("\nERROR!!!! DB RETURNED EMPTY VALUE!!!! \nKEY - %s \nVALUE - %s", p.key, v)
 			}
-			//log.Printf("\nREAD \nKEY - %s \nVALUE - %s", p.key, v)
+			//log.Printf("READ \nKEY | %s \nVALUE | %s", p.key, v)
 			if err != nil {
 				log.Printf("DB Error in Read : %v", err)
 			}
@@ -133,7 +141,7 @@ func (w *Workload) RunWorkload(db DBAccess, wg *sync.WaitGroup) {
 				s := StatPacket{UPDATE, elapsed}
 				statAdd <- s
 			}
-			//log.Printf("UPDATE \n%s \n%s", p.key, v)
+			//log.Printf("UPDATE \nKEY | %s \nVALUE | %s", p.key, v)
 
 		case DELETE:
 			p := StorePacket{DELETE, "", false}
@@ -149,7 +157,7 @@ func (w *Workload) RunWorkload(db DBAccess, wg *sync.WaitGroup) {
 				s := StatPacket{DELETE, elapsed}
 				statAdd <- s
 			}
-			//log.Printf("DELETE \n%s", p.key)
+			//log.Printf("DELETE \nKEY | %s", p.key)
 
 		case NOOP:
 			time.Sleep(time.Microsecond * 10)
