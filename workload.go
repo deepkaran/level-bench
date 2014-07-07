@@ -91,19 +91,12 @@ func (w *Workload) RunWorkload(db DBAccess, wg *sync.WaitGroup) {
 			p := StorePacket{CREATE, k, false}
 			storeRequest <- p
 			//log.Printf("CREATE \nKEY | %s \nVALUE | %s", k, v)
-			if fdb, ok := db.(*ForestDB); ((i+1)%50000 == 0) && ok {
-				fdb.Compact()
-			}
 			if cs, ok := db.(*CouchStore); ((i+1)%50000 == 0) && ok {
 				cs.Compact()
 			}
 
 		case READ:
 
-			if fdb, ok := db.(*ForestDB); ok && fdb.WaitForCompaction {
-				time.Sleep(time.Microsecond * 1)
-				continue
-			}
 			if cs, ok := db.(*CouchStore); ok && cs.WaitForCompaction {
 				time.Sleep(time.Microsecond * 1)
 				continue
